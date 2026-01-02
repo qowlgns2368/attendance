@@ -79,7 +79,7 @@
         .student-list { display: grid; gap: 12px; }
         .student-item { display: grid; grid-template-columns: 100px 150px 200px auto; gap: 12px; align-items: center; padding: 12px; background: #f9fafb; border-radius: 6px; }
         .student-item input { padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; }
-        .seat-editor { display: grid; grid-template-columns: repeat(5, 1fr) !important; gap: 8px; margin-bottom: 30px; }
+        .seat-editor { display: grid; gap: 8px; margin-bottom: 30px; }
         .seat-edit-cell { background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px 8px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; cursor: move; transition: all 0.2s; }
         .seat-edit-cell:hover { background: #f3f4f6; border-color: #2563eb; }
         .seat-edit-cell.empty { background: #f9fafb; border-style: dashed; opacity: 0.5; cursor: pointer; }
@@ -284,7 +284,65 @@ function deleteStudent(grade,idx){if(!confirm('정말 삭제하시겠습니까?'
 
 function addStudent(){const grade=prompt('학년을 입력하세요 (1 또는 2)');if(!grade||grade===null||grade===''){return}if(grade!=='1'&&grade!=='2'){alert('1 또는 2를 입력하세요');return}const 학번=prompt('학번을 입력하세요');if(!학번||학번===null||학번===''){return}const 이름=prompt('이름을 입력하세요');if(!이름||이름===null||이름===''){return}const 불참=prompt('불참 정보를 입력하세요 (없으면 - 입력)');const 불참값=불참&&불참.trim()!==''?불참.trim():'-';const 학생={학번:학번.trim(),이름:이름.trim(),불참:불참값};if(grade==='1'){g1.push(학생)}else{g2.push(학생)}saveData();render();renderSeating();alert(`${이름.trim()} 학생이 추가되었습니다`);const list=document.getElementById('student-list');if(list&&list.innerHTML!==''){showStudentGrade(grade)}}
 
-function editSeatingGrade(grade){dragData.grade=grade;const editor=document.getElementById('seating-editor');editor.innerHTML='';const seats=seatingLayout[grade];const cols=seats[0]?seats[0].length:5;const rows=seats.length;document.getElementById('seat-rows').value=rows;document.getElementById('seat-cols').value=cols;seats.forEach((row,ridx)=>{row.forEach((seat,cidx)=>{const cell=document.createElement('div');cell.className=seat?'seat-edit-cell':'seat-edit-cell empty';cell.dataset.row=ridx;cell.dataset.col=cidx;const seatKey=`${ridx}-${cidx}`;const seatNum=seatNumbers[grade][seatKey]||'';if(seat){const st=[...g1,...g2].find(x=>x.학번===seat);cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div><div class="seat-edit-id">${seat}</div><div class="seat-edit-name">${st?st.이름:''}</div>`;cell.draggable=true;cell.addEventListener('dragstart',handleDragStart);cell.addEventListener('dragend',handleDragEnd)}else{cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div>`}cell.addEventListener('dragover',handleDragOver);cell.addEventListener('drop',handleDrop);cell.addEventListener('dragleave',handleDragLeave);cell.onclick=()=>{if(!cell.classList.contains('dragging')){const newNum=prompt('좌석 번호를 입력하세요 (예: 1)');if(newNum!==null){seatNumbers[grade][seatKey]=newNum.trim()}const newId=prompt('학번을 입력하세요 (빈 자리는 취소)');if(newId===null){saveData();editSeatingGrade(grade);return}if(newId.trim()){const existingSt=[...g1,...g2].find(x=>x.학번===newId.trim());if(!existingSt){const newName=prompt('새 학생 이름을 입력하세요');if(newName){if(newId.startsWith('1'))g1.push({학번:newId.trim(),이름:newName.trim(),불참:'-'});else if(newId.startsWith('2'))g2.push({학번:newId.trim(),이름:newName.trim(),불참:'-'})}}seatingLayout[grade][ridx][cidx]=newId.trim()||null}else{seatingLayout[grade][ridx][cidx]=null}saveData();editSeatingGrade(grade);renderSeating()}};editor.appendChild(cell)})});editor.style.gridTemplateRows=`repeat(${rows}, 1fr)`}
+function editSeatingGrade(grade){
+    dragData.grade=grade;
+    const editor=document.getElementById('seating-editor');
+    editor.innerHTML='';
+    const seats=seatingLayout[grade];
+    const cols=seats[0]?seats[0].length:5;
+    const rows=seats.length;
+    document.getElementById('seat-rows').value=rows;
+    document.getElementById('seat-cols').value=cols;
+    
+    editor.className='seat-editor';
+    editor.style.gridTemplateColumns=`repeat(${cols}, 1fr)`;
+    
+    seats.forEach((row,ridx)=>{
+        row.forEach((seat,cidx)=>{
+            const cell=document.createElement('div');
+            cell.className=seat?'seat-edit-cell':'seat-edit-cell empty';
+            cell.dataset.row=ridx;
+            cell.dataset.col=cidx;
+            const seatKey=`${ridx}-${cidx}`;
+            const seatNum=seatNumbers[grade][seatKey]||'';
+            if(seat){
+                const st=[...g1,...g2].find(x=>x.학번===seat);
+                cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div><div class="seat-edit-id">${seat}</div><div class="seat-edit-name">${st?st.이름:''}</div>`;
+                cell.draggable=true;
+                cell.addEventListener('dragstart',handleDragStart);
+                cell.addEventListener('dragend',handleDragEnd)
+            }else{
+                cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div>`
+            }
+            cell.addEventListener('dragover',handleDragOver);
+            cell.addEventListener('drop',handleDrop);
+            cell.addEventListener('dragleave',handleDragLeave);
+            cell.onclick=()=>{
+                if(!cell.classList.contains('dragging')){
+                    const newNum=prompt('좌석 번호를 입력하세요 (예: 1)');
+                    if(newNum!==null){seatNumbers[grade][seatKey]=newNum.trim()}
+                    const newId=prompt('학번을 입력하세요 (빈 자리는 취소)');
+                    if(newId===null){saveData();editSeatingGrade(grade);return}
+                    if(newId.trim()){
+                        const existingSt=[...g1,...g2].find(x=>x.학번===newId.trim());
+                        if(!existingSt){
+                            const newName=prompt('새 학생 이름을 입력하세요');
+                            if(newName){
+                                if(newId.startsWith('1'))g1.push({학번:newId.trim(),이름:newName.trim(),불참:'-'});
+                                else if(newId.startsWith('2'))g2.push({학번:newId.trim(),이름:newName.trim(),불참:'-'})
+                            }
+                        }
+                        seatingLayout[grade][ridx][cidx]=newId.trim()||null
+                    }else{seatingLayout[grade][ridx][cidx]=null}
+                    saveData();
+                    editSeatingGrade(grade);
+                    renderSeating()
+                }
+            };
+            editor.appendChild(cell)
+        })
+    });
+}
 
 function handleDragStart(e){e.target.classList.add('dragging');dragData.fromRow=parseInt(e.target.dataset.row);dragData.fromCol=parseInt(e.target.dataset.col)}
 
