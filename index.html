@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>출석체크</title>
+    <title>출석체크 + 좌석표</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: #f9fafb; padding: 20px; }
+        body { font-family: -apple-system, sans-serif; background: #f9fafb; }
+        .tabs { background: white; border-bottom: 2px solid #e5e7eb; display: flex; }
+        .tab { padding: 16px 32px; cursor: pointer; font-weight: 600; color: #6b7280; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .tab:hover { background: #f9fafb; }
+        .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
         .container { max-width: 1200px; margin: 0 auto; }
         .card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; }
         h1 { font-size: 24px; font-weight: bold; margin-bottom: 16px; }
+        h2 { font-size: 20px; font-weight: bold; margin-bottom: 12px; margin-top: 24px; }
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
         .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
         .btn-sec { background: #e5e7eb; color: #374151; }
@@ -42,414 +49,224 @@
         .badge.absent { background: #fee2e2; color: #991b1b; }
         .badge.excused { background: #f3f4f6; color: #374151; }
         .badge.none { background: #f9fafb; color: #9ca3af; }
-        .teacher-btn { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: #2563eb; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
-        .modal.show { display: flex; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 32px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .seating-container { background: white; padding: 20px; border-radius: 8px; overflow-x: auto; }
+        .floor-label { background: #2563eb; color: white; padding: 8px 16px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 16px; border-radius: 4px; }
+        .seat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 30px; }
+        .seat { background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px 8px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; transition: all 0.2s; position: relative; }
+        .seat.empty { background: #f9fafb; border-style: dashed; opacity: 0.5; }
+        .seat.blocked { background: #1f2937; opacity: 0.3; }
+        .seat.blocked::before { content: '✕'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; color: #6b7280; }
+        .seat-number { font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px; }
+        .seat-id { font-size: 13px; color: #374151; font-weight: 500; margin-bottom: 2px; }
+        .seat-name { font-size: 15px; font-weight: bold; color: #111827; }
+        .seat.present { background: #dcfce7; border-color: #16a34a; }
+        .seat.late { background: #fed7aa; border-color: #f97316; }
+        .seat.absent { background: #fee2e2; border-color: #dc2626; }
+        .seat.excused { background: #f3f4f6; border-color: #6b7280; }
+        .legend { display: flex; gap: 16px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-box { width: 20px; height: 20px; border-radius: 4px; border: 2px solid; }
+        .legend-box.present { background: #dcfce7; border-color: #16a34a; }
+        .legend-box.late { background: #fed7aa; border-color: #f97316; }
+        .legend-box.absent { background: #fee2e2; border-color: #dc2626; }
+        .legend-box.excused { background: #f3f4f6; border-color: #6b7280; }
+        .admin-login { max-width: 400px; margin: 100px auto; }
+        .admin-content { display: none; }
+        .admin-content.show { display: block; }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        .student-list { display: grid; gap: 12px; }
+        .student-item { display: grid; grid-template-columns: 100px 150px 200px auto; gap: 12px; align-items: center; padding: 12px; background: #f9fafb; border-radius: 6px; }
+        .student-item input { padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; }
+        .seat-editor { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+        .seat-edit-cell { padding: 12px; border: 2px solid #e5e7eb; border-radius: 6px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; transition: all 0.2s; }
+        .seat-edit-cell:hover { background: #f3f4f6; }
+        .seat-edit-cell.empty { border-style: dashed; opacity: 0.5; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h1>겨울방학 자율학습</h1>
-                <button class="btn btn-success" onclick="download()">📥 다운로드</button>
-            </div>
-            
-            <div class="controls">
-                <div>
-                    <div style="margin-bottom: 8px; font-weight: 500;">학년</div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-sec active" onclick="setGrade('all')">전체</button>
-                        <button class="btn btn-sec" onclick="setGrade('1')">1학년</button>
-                        <button class="btn btn-sec" onclick="setGrade('2')">2학년</button>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('attendance')">📋 출석체크</div>
+        <div class="tab" onclick="switchTab('seating')">🪑 좌석표</div>
+        <div class="tab" onclick="switchTab('admin')">⚙️ 관리</div>
+    </div>
+    
+    <div id="attendance-tab" class="tab-content active">
+        <div class="container">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h1>겨울방학 자율학습</h1>
+                    <button class="btn btn-success" onclick="download()">📥 다운로드</button>
+                </div>
+                <div class="controls">
+                    <div>
+                        <div style="margin-bottom: 8px; font-weight: 500;">학년</div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-sec active" onclick="setGrade('all')">전체</button>
+                            <button class="btn btn-sec" onclick="setGrade('1')">1학년</button>
+                            <button class="btn btn-sec" onclick="setGrade('2')">2학년</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="margin-bottom: 8px; font-weight: 500;">시간</div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-sec active" onclick="setTime('오전')">오전</button>
+                            <button class="btn btn-sec" onclick="setTime('오후')">오후</button>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <div style="margin-bottom: 8px; font-weight: 500;">시간</div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-sec active" onclick="setTime('오전')">오전</button>
-                        <button class="btn btn-sec" onclick="setTime('오후')">오후</button>
-                    </div>
+                <div style="background: #dbeafe; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                    <input type="date" id="date" onchange="update()" style="padding: 8px; border: 1px solid #93c5fd; border-radius: 6px; margin-bottom: 8px;">
+                    <div id="dateDisplay" style="font-size: 18px; font-weight: bold; color: #1e40af;"></div>
+                    <div id="timeDisplay" style="font-size: 14px; color: #374151;"></div>
                 </div>
             </div>
-            
-            <div style="background: #dbeafe; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                <input type="date" id="date" onchange="update()" style="padding: 8px; border: 1px solid #93c5fd; border-radius: 6px; margin-bottom: 8px;">
-                <div id="dateDisplay" style="font-size: 18px; font-weight: bold; color: #1e40af;"></div>
-                <div id="timeDisplay" style="font-size: 14px; color: #374151;"></div>
+            <div class="card input-section">
+                <h2>학번을 입력하세요</h2>
+                <input type="text" id="input" placeholder="예: 10102" maxlength="5" autofocus>
+                <div id="msg"></div>
             </div>
-        </div>
-        
-        <div class="card input-section">
-            <h2>학번을 입력하세요</h2>
-            <input type="text" id="input" placeholder="예: 10102" maxlength="5" autofocus>
-            <div id="msg"></div>
-        </div>
-        
-        <div class="stats">
-            <div class="stat total"><div class="stat-num" id="total">0</div><div>전체</div></div>
-            <div class="stat present"><div class="stat-num" id="present">0</div><div>출석</div></div>
-            <div class="stat late"><div class="stat-num" id="late">0</div><div>지각</div></div>
-            <div class="stat absent"><div class="stat-num" id="absent">0</div><div>결석</div></div>
-        </div>
-        
-        <div class="card">
-            <h1>출석 현황</h1>
-            <table>
-                <thead><tr><th>학번</th><th>이름</th><th style="text-align:center;">상태</th><th style="text-align:center;">불참</th></tr></thead>
-                <tbody id="table"></tbody>
-            </table>
+            <div class="stats">
+                <div class="stat total"><div class="stat-num" id="total">0</div><div>전체</div></div>
+                <div class="stat present"><div class="stat-num" id="present">0</div><div>출석</div></div>
+                <div class="stat late"><div class="stat-num" id="late">0</div><div>지각</div></div>
+                <div class="stat absent"><div class="stat-num" id="absent">0</div><div>결석</div></div>
+            </div>
+            <div class="card">
+                <h1>출석 현황</h1>
+                <table>
+                    <thead><tr><th>학번</th><th>이름</th><th style="text-align:center;">상태</th><th style="text-align:center;">불참</th></tr></thead>
+                    <tbody id="table"></tbody>
+                </table>
+            </div>
         </div>
     </div>
     
-    <button class="teacher-btn" onclick="openModal()">⚙️</button>
-    
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <h1 style="margin-bottom: 20px;">교사 옵션</h1>
-            <div class="form-group">
-                <label>비밀번호</label>
-                <input type="password" id="pass">
-                <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="verify()">확인</button>
+    <div id="seating-tab" class="tab-content">
+        <div class="container">
+            <div class="card">
+                <h1>좌석표</h1>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-box present"></div><span>출석</span></div>
+                    <div class="legend-item"><div class="legend-box late"></div><span>지각</span></div>
+                    <div class="legend-item"><div class="legend-box absent"></div><span>결석</span></div>
+                    <div class="legend-item"><div class="legend-box excused"></div><span>불참</span></div>
+                    <div class="legend-item"><div class="legend-box" style="background:white;border-color:#e5e7eb;"></div><span>미체크</span></div>
+                </div>
             </div>
-            <div id="options" style="display: none;">
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
-                <h3 style="margin-bottom: 12px;">비밀번호 변경</h3>
-                <div class="form-group"><label>새 비밀번호</label><input type="password" id="newPass"></div>
-                <div class="form-group"><label>확인</label><input type="password" id="confPass"></div>
-                <button class="btn btn-primary" style="width: 100%; margin-bottom: 20px;" onclick="changePass()">변경</button>
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
-                <h3 style="margin-bottom: 12px;">수동 변경</h3>
-                <div class="form-group"><label>학번</label><input type="text" id="manId"></div>
+            <div class="seating-container"><div id="seating-chart"></div></div>
+        </div>
+    </div>
+    
+    <div id="admin-tab" class="tab-content">
+        <div class="container">
+            <div class="admin-login card" id="admin-login">
+                <h1>관리자 로그인</h1>
                 <div class="form-group">
-                    <label>상태</label>
-                    <select id="manStatus">
-                        <option value="present">출석</option>
-                        <option value="late">지각</option>
-                        <option value="absent">결석</option>
-                        <option value="excused">불참</option>
-                        <option value="none">미체크</option>
-                    </select>
+                    <label>비밀번호</label>
+                    <input type="password" id="admin-pass">
                 </div>
-                <button class="btn btn-primary" style="width: 100%; margin-bottom: 20px;" onclick="manualChange()">변경</button>
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
-                <button class="btn btn-danger" style="width: 100%;" onclick="reset()">전체 초기화</button>
-                <button class="btn btn-sec" style="width: 100%; margin-top: 12px;" onclick="closeModal()">닫기</button>
+                <button class="btn btn-primary" style="width: 100%;" onclick="adminLogin()">로그인</button>
+            </div>
+            
+            <div class="admin-content" id="admin-content">
+                <div class="card">
+                    <h1>관리자 설정</h1>
+                    <button class="btn btn-danger" onclick="adminLogout()" style="float: right;">로그아웃</button>
+                    <div style="clear: both;"></div>
+                </div>
+                
+                <div class="card">
+                    <h2>비밀번호 변경</h2>
+                    <div class="form-group">
+                        <label>새 비밀번호</label>
+                        <input type="password" id="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label>비밀번호 확인</label>
+                        <input type="password" id="confirm-password">
+                    </div>
+                    <button class="btn btn-primary" onclick="changePassword()">변경</button>
+                </div>
+                
+                <div class="card">
+                    <h2>출석 수동 변경</h2>
+                    <div class="form-group">
+                        <label>학번</label>
+                        <input type="text" id="manual-id" placeholder="예: 10102">
+                    </div>
+                    <div class="form-group">
+                        <label>상태</label>
+                        <select id="manual-status">
+                            <option value="present">출석</option>
+                            <option value="late">지각</option>
+                            <option value="absent">결석</option>
+                            <option value="excused">불참</option>
+                            <option value="none">미체크</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="manualChange()">변경</button>
+                </div>
+                
+                <div class="card">
+                    <h2>학생 정보 관리</h2>
+                    <div style="margin-bottom: 16px;">
+                        <button class="btn btn-sec" onclick="showStudentGrade('1')">1학년</button>
+                        <button class="btn btn-sec" onclick="showStudentGrade('2')">2학년</button>
+                    </div>
+                    <div id="student-list" class="student-list"></div>
+                    <button class="btn btn-success" onclick="addStudent()" style="margin-top: 16px;">+ 학생 추가</button>
+                </div>
+                
+                <div class="card">
+                    <h2>좌석 배치 편집</h2>
+                    <p style="margin-bottom: 16px; color: #6b7280;">좌석을 클릭하여 학생을 배치하세요</p>
+                    <div style="margin-bottom: 16px;">
+                        <button class="btn btn-sec" onclick="editSeatingGrade('1')">1학년</button>
+                        <button class="btn btn-sec" onclick="editSeatingGrade('2')">2학년</button>
+                    </div>
+                    <div id="seating-editor"></div>
+                </div>
+                
+                <div class="card">
+                    <h2>데이터 관리</h2>
+                    <button class="btn btn-danger" onclick="resetAll()">전체 출석 데이터 초기화</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        const g1 = [
-            { 학번: '10102', 이름: '김도윤', 불참: '-' },
-            { 학번: '10103', 이름: '김도훈', 불참: '-' },
-            { 학번: '10106', 이름: '김재현', 불참: '-' },
-            { 학번: '10115', 이름: '이건상', 불참: '-' },
-            { 학번: '10116', 이름: '이기혁', 불참: '-' },
-            { 학번: '10117', 이름: '이서준', 불참: '-' },
-            { 학번: '10119', 이름: '이윤찬', 불참: '-' },
-            { 학번: '10123', 이름: '김보성', 불참: '-' },
-            { 학번: '10223', 이름: '이서준', 불참: '-' },
-            { 학번: '10306', 이름: '이승준', 불참: '-' },
-            { 학번: '10320', 이름: '조현석', 불참: '-' },
-            { 학번: '10505', 이름: '권가연', 불참: '수 오전/오후' },
-            { 학번: '10508', 이름: '김윤채', 불참: '금 오전' },
-            { 학번: '10513', 이름: '박지후', 불참: '금 오후' },
-            { 학번: '10516', 이름: '이지우', 불참: '-' },
-            { 학번: '10601', 이름: '김세연', 불참: '-' },
-            { 학번: '10608', 이름: '유지원', 불참: '-' },
-            { 학번: '10609', 이름: '이나운', 불참: '-' },
-            { 학번: '10611', 이름: '이루리', 불참: '목 오후' },
-            { 학번: '10612', 이름: '이소윤', 불참: '-' },
-            { 학번: '10613', 이름: '이영인', 불참: '-' },
-            { 학번: '10618', 이름: '정희란', 불참: '-' },
-            { 학번: '10619', 이름: '최진경', 불참: '-' },
-            { 학번: '10805', 이름: '김보미', 불참: '화 오후' },
-            { 학번: '10815', 이름: '유제니', 불참: '-' },
-            { 학번: '10901', 이름: '김민서', 불참: '금 오전' },
-            { 학번: '10903', 이름: '김시현', 불참: '금 오전/오후' },
-            { 학번: '10904', 이름: '김하람', 불참: '금 오전' },
-            { 학번: '10905', 이름: '서하은', 불참: '-' },
-            { 학번: '10907', 이름: '유민정', 불참: '금 오전' },
-            { 학번: '10910', 이름: '이나윤', 불참: '금 오전' }
-        ];
-        const g2 = [
-            { 학번: '20101', 이름: '김동하', 불참: '-' },
-            { 학번: '20113', 이름: '이재경', 불참: '-' },
-            { 학번: '20215', 이름: '정민규', 불참: '-' },
-            { 학번: '20301', 이름: '김선우', 불참: '-' },
-            { 학번: '20307', 이름: '박이엘', 불참: '-' },
-            { 학번: '20313', 이름: '윤여명', 불참: '-' },
-            { 학번: '20418', 이름: '윤주성', 불참: '-' },
-            { 학번: '20714', 이름: '이유온', 불참: '-' },
-            { 학번: '20801', 이름: '강다연', 불참: '-' },
-            { 학번: '20802', 이름: '강서유', 불참: '-' },
-            { 학번: '20807', 이름: '김민서', 불참: '-' },
-            { 학번: '20810', 이름: '서준영', 불참: '-' },
-            { 학번: '20811', 이름: '서지민', 불참: '-' },
-            { 학번: '20815', 이름: '이서윤', 불참: '-' },
-            { 학번: '21005', 이름: '김채영', 불참: '-' },
-            { 학번: '21010', 이름: '백소은', 불참: '-' },
-            { 학번: '21020', 이름: '이예담', 불참: '-' },
-            { 학번: '21022', 이름: '정채린', 불참: '-' }
-        ];
-
-        let s = {
-            grade: 'all',
-            time: '오전',
-            date: new Date().toISOString().split('T')[0],
-            att: {},
-            pw: localStorage.getItem('pw') || '1234'
-        };
-
-        function init() {
-            document.getElementById('date').value = s.date;
-            update();
-            setInterval(() => {
-                document.getElementById('timeDisplay').textContent = '현재: ' + new Date().toLocaleTimeString('ko-KR', {hour12: false});
-            }, 1000);
-            setInterval(autoAbs, 1000);
-            document.getElementById('input').addEventListener('keypress', e => {
-                if (e.key === 'Enter') process();
-            });
-        }
-
-        function setGrade(g) {
-            s.grade = g;
-            document.querySelectorAll('.controls > div:first-child .btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            render();
-        }
-
-        function setTime(t) {
-            s.time = t;
-            document.querySelectorAll('.controls > div:last-child .btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            update();
-        }
-
-        function update() {
-            s.date = document.getElementById('date').value;
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
-            const d = new Date(s.date);
-            document.getElementById('dateDisplay').textContent = `${s.date} (${days[d.getDay()]}요일) - ${s.time}`;
-            render();
-        }
-
-        function getData() {
-            if (s.grade === '1') return g1;
-            if (s.grade === '2') return g2;
-            return [...g1, ...g2].sort((a, b) => a.학번.localeCompare(b.학번));
-        }
-
-        function getDay(ds) {
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
-            return days[new Date(ds).getDay()];
-        }
-
-        function isExc(st) {
-            if (st.불참 === '-') return false;
-            const day = getDay(s.date);
-            return st.불참.includes(day) && st.불참.includes(s.time === '오전' ? '오전' : '오후');
-        }
-
-        function isLate() {
-            const m = new Date().getHours() * 60 + new Date().getMinutes();
-            return s.time === '오전' ? m > 510 : m > 780;
-        }
-
-        function isAbs() {
-            const m = new Date().getHours() * 60 + new Date().getMinutes();
-            return s.time === '오전' ? m > 525 : m > 795;
-        }
-
-        function isOver() {
-            const m = new Date().getHours() * 60 + new Date().getMinutes();
-            return s.time === '오전' ? m > 710 : m > 960;
-        }
-
-        function autoAbs() {
-            if (isOver()) {
-                let ch = false;
-                getData().forEach(st => {
-                    const k = `${s.date}-${s.time}-${st.학번}`;
-                    if (s.att[k]) { delete s.att[k]; ch = true; }
-                });
-                if (ch) render();
-                return;
-            }
-            if (!isAbs()) return;
-            let ch = false;
-            getData().forEach(st => {
-                const k = `${s.date}-${s.time}-${st.학번}`;
-                if (!s.att[k] && !isExc(st)) { s.att[k] = 'absent'; ch = true; }
-            });
-            if (ch) render();
-        }
-
-        function process() {
-            const inp = document.getElementById('input');
-            const id = inp.value.trim();
-            if (!id) return;
-            
-            const st = [...g1, ...g2].find(x => x.학번 === id);
-            if (!st) {
-                msg('존재하지 않는 학번', 'error');
-                inp.value = '';
-                return;
-            }
-            
-            const k = `${s.date}-${s.time}-${id}`;
-            
-            if (isExc(st)) {
-                msg(`${st.이름} - 불참 예정`, 'warning');
-                inp.value = '';
-                return;
-            }
-            
-            if (isAbs()) {
-                if (s.att[k] === 'absent') {
-                    s.att[k] = 'late';
-                    msg(`${st.이름} - 지각 처리`, 'warning');
-                } else {
-                    msg(`${st.이름} - 이미 처리됨`, 'warning');
-                }
-            } else if (isLate()) {
-                s.att[k] = 'late';
-                msg(`${st.이름} - 지각`, 'warning');
-            } else {
-                s.att[k] = 'present';
-                msg(`${st.이름} - 출석`, 'success');
-            }
-            
-            inp.value = '';
-            render();
-        }
-
-        function msg(txt, type) {
-            const m = document.getElementById('msg');
-            m.textContent = txt;
-            m.className = type;
-            m.style.display = 'block';
-            setTimeout(() => m.style.display = 'none', 2000);
-        }
-
-        function getSt(id, st) {
-            const k = `${s.date}-${s.time}-${id}`;
-            let status = s.att[k];
-            if (!status && isExc(st)) status = 'excused';
-            return status || 'none';
-        }
-
-        function render() {
-            const data = getData();
-            const tb = document.getElementById('table');
-            tb.innerHTML = '';
-            
-            let p = 0, l = 0, a = 0;
-            
-            data.forEach(st => {
-                const status = getSt(st.학번, st);
-                if (status === 'present') p++;
-                if (status === 'late') l++;
-                if (status === 'absent') a++;
-                
-                const sm = {
-                    'present': { t: '출석', c: 'present' },
-                    'late': { t: '지각', c: 'late' },
-                    'absent': { t: '결석', c: 'absent' },
-                    'excused': { t: '불참', c: 'excused' },
-                    'none': { t: '-', c: 'none' }
-                };
-                
-                const x = sm[status];
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${st.학번}</td>
-                    <td style="font-weight:600;">${st.이름}</td>
-                    <td style="text-align:center;"><span class="badge ${x.c}">${x.t}</span></td>
-                    <td style="text-align:center; color:${st.불참!=='-'?'#dc2626':'#9ca3af'};">${st.불참}</td>
-                `;
-                tb.appendChild(tr);
-            });
-            
-            document.getElementById('total').textContent = data.length;
-            document.getElementById('present').textContent = p;
-            document.getElementById('late').textContent = l;
-            document.getElementById('absent').textContent = a;
-        }
-
-        function download() {
-            const data = getData();
-            const day = getDay(s.date);
-            const rows = [['날짜','요일','시간','학번','이름','상태']];
-            data.forEach(st => {
-                const status = getSt(st.학번, st);
-                const t = {present:'출석',late:'지각',absent:'결석',excused:'불참',none:'미체크'}[status];
-                rows.push([s.date, day, s.time, st.학번, st.이름, t]);
-            });
-            const csv = rows.map(r => r.join(',')).join('\n');
-            const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `출석_${s.date}_${s.time}.csv`;
-            link.click();
-        }
-
-        function openModal() {
-            document.getElementById('modal').classList.add('show');
-            document.getElementById('options').style.display = 'none';
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.remove('show');
-            document.getElementById('pass').value = '';
-        }
-
-        function verify() {
-            if (document.getElementById('pass').value === s.pw) {
-                document.getElementById('options').style.display = 'block';
-            } else {
-                alert('비밀번호가 틀렸습니다');
-            }
-        }
-
-        function changePass() {
-            const n = document.getElementById('newPass').value;
-            const c = document.getElementById('confPass').value;
-            if (n !== c) { alert('비밀번호가 일치하지 않습니다'); return; }
-            if (!n) { alert('비밀번호를 입력하세요'); return; }
-            s.pw = n;
-            localStorage.setItem('pw', n);
-            alert('변경되었습니다');
-            document.getElementById('newPass').value = '';
-            document.getElementById('confPass').value = '';
-        }
-
-        function manualChange() {
-            const id = document.getElementById('manId').value;
-            const status = document.getElementById('manStatus').value;
-            const st = [...g1, ...g2].find(x => x.학번 === id);
-            if (!st) { alert('존재하지 않는 학번'); return; }
-            const k = `${s.date}-${s.time}-${id}`;
-            if (status === 'none') delete s.att[k];
-            else s.att[k] = status;
-            render();
-            alert('변경되었습니다');
-        }
-
-        function reset() {
-            if (!confirm('전체 데이터를 초기화하시겠습니까?')) return;
-            s.att = {};
-            render();
-            alert('초기화되었습니다');
-        }
-
-        init();
-    </script>
+<script>
+let g1=[{학번:'10102',이름:'김도윤',불참:'-'},{학번:'10103',이름:'김도훈',불참:'-'},{학번:'10106',이름:'김재현',불참:'-'},{학번:'10115',이름:'이건상',불참:'-'},{학번:'10116',이름:'이기혁',불참:'-'},{학번:'10117',이름:'이서준',불참:'-'},{학번:'10119',이름:'이윤찬',불참:'-'},{학번:'10123',이름:'김보성',불참:'-'},{학번:'10223',이름:'이서준',불참:'-'},{학번:'10306',이름:'이승준',불참:'-'},{학번:'10320',이름:'조현석',불참:'-'},{학번:'10505',이름:'권가연',불참:'수 오전/오후'},{학번:'10508',이름:'김윤채',불참:'금 오전'},{학번:'10513',이름:'박지후',불참:'금 오후'},{학번:'10516',이름:'이지우',불참:'-'},{학번:'10601',이름:'김세연',불참:'-'},{학번:'10608',이름:'유지원',불참:'-'},{학번:'10609',이름:'이나운',불참:'-'},{학번:'10611',이름:'이루리',불참:'목 오후'},{학번:'10612',이름:'이소윤',불참:'-'},{학번:'10613',이름:'이영인',불참:'-'},{학번:'10618',이름:'정희란',불참:'-'},{학번:'10619',이름:'최진경',불참:'-'},{학번:'10805',이름:'김보미',불참:'화 오후'},{학번:'10815',이름:'유제니',불참:'-'},{학번:'10901',이름:'김민서',불참:'금 오전'},{학번:'10903',이름:'김시현',불참:'금 오전/오후'},{학번:'10904',이름:'김하람',불참:'금 오전'},{학번:'10905',이름:'서하은',불참:'-'},{학번:'10907',이름:'유민정',불참:'금 오전'},{학번:'10910',이름:'이나윤',불참:'금 오전'}];
+let g2=[{학번:'20101',이름:'김동하',불참:'-'},{학번:'20113',이름:'이재경',불참:'-'},{학번:'20215',이름:'정민규',불참:'-'},{학번:'20301',이름:'김선우',불참:'-'},{학번:'20307',이름:'박이엘',불참:'-'},{학번:'20313',이름:'윤여명',불참:'-'},{학번:'20418',이름:'윤주성',불참:'-'},{학번:'20714',이름:'이유온',불참:'-'},{학번:'20801',이름:'강다연',불참:'-'},{학번:'20802',이름:'강서유',불참:'-'},{학번:'20807',이름:'김민서',불참:'-'},{학번:'20810',이름:'서준영',불참:'-'},{학번:'20811',이름:'서지민',불참:'-'},{학번:'20815',이름:'이서윤',불참:'-'},{학번:'21005',이름:'김채영',불참:'-'},{학번:'21010',이름:'백소은',불참:'-'},{학번:'21020',이름:'이예담',불참:'-'},{학번:'21022',이름:'정채린',불참:'-'}];
+let seatingLayout={'2':[['21022','20810','21020','20815','21005'],[null,null,null,null,null],['20807',null,null,null,'20811'],[null,null,null,null,null],['20802','20801','20714',null,null],[null,null,null,null,null],[null,null,null,'20418','20313'],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20307',null,null],[null,null,null,null,null],[null,null,'20301',null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20215',null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20113',null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20101',null,null]],'1':[[null,null,'10619','10618','10508'],[null,null,null,null,null],['10805','10513','10516','10612',null],[null,null,null,null,null],['10903','10904','10905','10907','10910'],[null,null,null,null,null],['10505','10608','10601','10611','10901'],[null,null,null,null,null],['10903','10904','10905','10907','10910'],[null,null,null,null,null],['10505','10601','10608','10612','10901'],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],['10320','10106',null,null,'10119'],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'10306','10116','10117'],[null,null,null,null,null],['10320','10106','10223',null,'10123'],[null,null,null,null,null],[null,null,'10103','10102','10115']]};
+let s={grade:'all',time:'오전',date:new Date().toISOString().split('T')[0],att:{},pw:localStorage.getItem('pw')||'1234',adminLoggedIn:false};
+function saveData(){localStorage.setItem('students1',JSON.stringify(g1));localStorage.setItem('students2',JSON.stringify(g2));localStorage.setItem('seating',JSON.stringify(seatingLayout))}
+function loadData(){const s1=localStorage.getItem('students1');const s2=localStorage.getItem('students2');const sl=localStorage.getItem('seating');const att=localStorage.getItem('attendance');if(s1)g1=JSON.parse(s1);if(s2)g2=JSON.parse(s2);if(sl)seatingLayout=JSON.parse(sl);if(att)s.att=JSON.parse(att)}
+function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));if(t==='attendance'){document.querySelector('.tab:nth-child(1)').classList.add('active');document.getElementById('attendance-tab').classList.add('active')}else if(t==='seating'){document.querySelector('.tab:nth-child(2)').classList.add('active');document.getElementById('seating-tab').classList.add('active');renderSeating()}else if(t==='admin'){document.querySelector('.tab:nth-child(3)').classList.add('active');document.getElementById('admin-tab').classList.add('active');if(!s.adminLoggedIn){document.getElementById('admin-login').style.display='block';document.getElementById('admin-content').classList.remove('show')}else{document.getElementById('admin-login').style.display='none';document.getElementById('admin-content').classList.add('show')}}}
+function adminLogin(){const pass=document.getElementById('admin-pass').value;if(pass===s.pw){s.adminLoggedIn=true;document.getElementById('admin-login').style.display='none';document.getElementById('admin-content').classList.add('show');document.getElementById('admin-pass').value=''}else{alert('비밀번호가 틀렸습니다')}}
+function adminLogout(){s.adminLoggedIn=false;document.getElementById('admin-login').style.display='block';document.getElementById('admin-content').classList.remove('show')}
+function changePassword(){const n=document.getElementById('new-password').value;const c=document.getElementById('confirm-password').value;if(n!==c){alert('비밀번호가 일치하지 않습니다');return}if(!n){alert('비밀번호를 입력하세요');return}s.pw=n;localStorage.setItem('pw',n);alert('변경되었습니다');document.getElementById('new-password').value='';document.getElementById('confirm-password').value=''}
+function manualChange(){const id=document.getElementById('manual-id').value;const status=document.getElementById('manual-status').value;if(!id){alert('학번을 입력하세요');return}const key=`${s.date}_${s.time}_${id}`;if(status==='none'){delete s.att[key]}else{s.att[key]=status}localStorage.setItem('attendance',JSON.stringify(s.att));render();renderSeating();alert('변경되었습니다');document.getElementById('manual-id').value=''}
+function showStudentGrade(grade){const list=document.getElementById('student-list');list.innerHTML='';const students=grade==='1'?g1:g2;students.forEach((st,idx)=>{const div=document.createElement('div');div.className='student-item';div.innerHTML=`<input type="text" value="${st.학번}" onchange="updateStudent('${grade}',${idx},'학번',this.value)"><input type="text" value="${st.이름}" onchange="updateStudent('${grade}',${idx},'이름',this.value)"><input type="text" value="${st.불참}" onchange="updateStudent('${grade}',${idx},'불참',this.value)"><button class="btn btn-danger" onclick="deleteStudent('${grade}',${idx})">삭제</button>`;list.appendChild(div)})}
+function updateStudent(grade,idx,field,value){if(grade==='1')g1[idx][field]=value;else g2[idx][field]=value;saveData();render();renderSeating()}
+function deleteStudent(grade,idx){if(!confirm('정말 삭제하시겠습니까?'))return;if(grade==='1')g1.splice(idx,1);else g2.splice(idx,1);saveData();showStudentGrade(grade);render();renderSeating()}
+function addStudent(){const grade=prompt('학년을 입력하세요 (1 또는 2)');if(grade!=='1'&&grade!=='2')return;const 학번=prompt('학번을 입력하세요');if(!학번)return;const 이름=prompt('이름을 입력하세요');if(!이름)return;const 불참=prompt('불참 정보를 입력하세요 (없으면 - 입력)')||'-';if(grade==='1')g1.push({학번,이름,불참});else g2.push({학번,이름,불참});saveData();showStudentGrade(grade);render();renderSeating()}
+function editSeatingGrade(grade){const editor=document.getElementById('seating-editor');editor.innerHTML='';const seats=seatingLayout[grade];seats.forEach((row,ridx)=>{row.forEach((seat,cidx)=>{const cell=document.createElement('div');cell.className=seat?'seat-edit-cell':'seat-edit-cell empty';if(seat){const st=[...g1,...g2].find(x=>x.학번===seat);cell.innerHTML=`<div>${seat}</div><div>${st?st.이름:''}</div>`}cell.onclick=()=>{const newId=prompt('학번을 입력하세요 (빈 자리는 취소)');if(newId===null)return;seatingLayout[grade][ridx][cidx]=newId||null;saveData();editSeatingGrade(grade);renderSeating()};editor.appendChild(cell)})});editor.style.gridTemplateRows=`repeat(${seats.length}, 1fr)`}
+function getSt(id,st){const key=`${s.date}_${s.time}_${id}`;if(s.att[key])return s.att[key];const days=['일','월','화','수','목','금','토'];const d=new Date(s.date);const day=days[d.getDay()];if(st.불참==='-')return'none';const exc=st.불참.split(',').map(x=>x.trim());for(let e of exc){if(e.includes(day)){if(e.includes('오전')&&s.time==='오전')return'excused';if(e.includes('오후')&&s.time==='오후')return'excused';if(!e.includes('오전')&&!e.includes('오후'))return'excused'}}return'none'}
+function renderSeating(){const chart=document.getElementById('seating-chart');chart.innerHTML='';['2','1'].forEach(grade=>{const div=document.createElement('div');div.innerHTML=`<div class="floor-label">${grade}학년</div>`;const grid=document.createElement('div');grid.className='seat-grid';const seats=seatingLayout[grade];seats.forEach(row=>{row.forEach(id=>{const se=document.createElement('div');if(id==='X'){se.className='seat blocked'}else if(!id){se.className='seat empty'}else{const st=[...g1,...g2].find(x=>x.학번===id);if(st){const status=getSt(id,st);se.className=`seat ${status}`;se.innerHTML=`<div class="seat-number">${id.substring(1)}</div><div class="seat-id">${id}</div><div class="seat-name">${st.이름}</div>`}else{se.className='seat empty'}}grid.appendChild(se)})});grid.style.gridTemplateRows=`repeat(${seats.length}, 1fr)`;div.appendChild(grid);chart.appendChild(div)})}
+function init(){loadData();document.getElementById('date').value=s.date;update();setInterval(()=>document.getElementById('timeDisplay').textContent='현재: '+new Date().toLocaleTimeString('ko-KR',{hour12:false}),1000);setInterval(autoAbs,60000);document.getElementById('input').addEventListener('keypress',e=>{if(e.key==='Enter')process()})}
+function setGrade(g){s.grade=g;document.querySelectorAll('.controls > div:first-child .btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');render()}
+function setTime(t){s.time=t;document.querySelectorAll('.controls > div:last-child .btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');update()}
+function update(){s.date=document.getElementById('date').value;const days=['일','월','화','수','목','금','토'];const d=new Date(s.date);const day=days[d.getDay()];document.getElementById('dateDisplay').textContent=`${s.date} (${day})`;render()}
+function render(){const students=s.grade==='all'?[...g1,...g2]:s.grade==='1'?g1:g2;let total=0,present=0,late=0,absent=0;const tbody=document.getElementById('table');tbody.innerHTML='';students.forEach(st=>{const status=getSt(st.학번,st);const key=`${s.date}_${s.time}_${st.학번}`;const actualStatus=s.att[key]||status;if(actualStatus==='present')present++;if(actualStatus==='late')late++;if(actualStatus==='absent')absent++;total++;const tr=document.createElement('tr');tr.innerHTML=`<td>${st.학번}</td><td>${st.이름}</td><td style="text-align:center;"><span class="badge ${actualStatus}">${actualStatus==='present'?'출석':actualStatus==='late'?'지각':actualStatus==='absent'?'결석':actualStatus==='excused'?'불참':'미체크'}</span></td><td style="text-align:center;">${st.불참}</td>`;tbody.appendChild(tr)});document.getElementById('total').textContent=total;document.getElementById('present').textContent=present;document.getElementById('late').textContent=late;document.getElementById('absent').textContent=absent}
+function process(){const id=document.getElementById('input').value.trim();document.getElementById('input').value='';if(!id)return;const st=[...g1,...g2].find(x=>x.학번===id);if(!st){showMsg('학번을 찾을 수 없습니다','error');return}const now=new Date();const h=now.getHours();const m=now.getMinutes();const key=`${s.date}_${s.time}_${id}`;const excused=getSt(id,st)==='excused';if(excused){showMsg(`${st.이름} - 불참 처리됨`,'warning');s.att[key]='excused'}else if(s.time==='오전'){if(h<9||(h===9&&m<30)){showMsg(`${st.이름} - 출석`,'success');s.att[key]='present'}else{showMsg(`${st.이름} - 지각`,'warning');s.att[key]='late'}}else{if(h<14||(h===14&&m<30)){showMsg(`${st.이름} - 출석`,'success');s.att[key]='present'}else{showMsg(`${st.이름} - 지각`,'warning');s.att[key]='late'}}localStorage.setItem('attendance',JSON.stringify(s.att));render();renderSeating()}
+function showMsg(text,type){const msg=document.getElementById('msg');msg.textContent=text;msg.className=type;msg.style.display='block';setTimeout(()=>msg.style.display='none',3000)}
+function autoAbs(){const now=new Date();const h=now.getHours();const m=now.getMinutes();if(s.time==='오전'&&h===10&&m===0){[...g1,...g2].forEach(st=>{const key=`${s.date}_${s.time}_${st.학번}`;if(!s.att[key]){const excused=getSt(st.학번,st)==='excused';s.att[key]=excused?'excused':'absent'}});localStorage.setItem('attendance',JSON.stringify(s.att));render();renderSeating()}if(s.time==='오후'&&h===15&&m===0){[...g1,...g2].forEach(st=>{const key=`${s.date}_${s.time}_${st.학번}`;if(!s.att[key]){const excused=getSt(st.학번,st)==='excused';s.att[key]=excused?'excused':'absent'}});localStorage.setItem('attendance',JSON.stringify(s.att));render();renderSeating()}}
+function download(){const students=s.grade==='all'?[...g1,...g2]:s.grade==='1'?g1:g2;let csv='학번,이름,상태,불참\n';students.forEach(st=>{const status=getSt(st.학번,st);const key=`${s.date}_${s.time}_${st.학번}`;const actualStatus=s.att[key]||status;const statusText=actualStatus==='present'?'출석':actualStatus==='late'?'지각':actualStatus==='absent'?'결석':actualStatus==='excused'?'불참':'미체크';csv+=`${st.학번},${st.이름},${statusText},${st.불참}\n`});const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`출석체크_${s.date}_${s.time}.csv`;a.click()}
+function resetAll(){if(!confirm('정말 전체 출석 데이터를 초기화하시겠습니까?'))return;s.att={};localStorage.removeItem('attendance');render();renderSeating();alert('초기화되었습니다')}
+init();
+</script>
 </body>
 </html>
