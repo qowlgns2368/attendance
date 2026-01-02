@@ -54,8 +54,6 @@
         .seat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 30px; }
         .seat { background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px 8px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; transition: all 0.2s; position: relative; }
         .seat.empty { background: #f9fafb; border-style: dashed; opacity: 0.5; }
-        .seat.blocked { background: #1f2937; opacity: 0.3; }
-        .seat.blocked::before { content: '✕'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; color: #6b7280; }
         .seat-number { font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px; }
         .seat-id { font-size: 13px; color: #374151; font-weight: 500; margin-bottom: 2px; }
         .seat-name { font-size: 15px; font-weight: bold; color: #111827; }
@@ -226,23 +224,10 @@
                 
                 <div class="card">
                     <h2>좌석 배치 편집</h2>
-                    <p style="margin-bottom: 16px; color: #6b7280;">좌석을 드래그하여 이동하거나 클릭하여 학생을 배치하세요</p>
+                    <p style="margin-bottom: 16px; color: #6b7280;">좌석을 드래그하여 이동하거나 클릭하여 학생을 배치하세요<br>좌석 번호는 고정되어 있으며 학번과 이름만 변경 가능합니다</p>
                     <div style="margin-bottom: 16px;">
                         <button class="btn btn-sec" onclick="editSeatingGrade('1')">1학년</button>
                         <button class="btn btn-sec" onclick="editSeatingGrade('2')">2학년</button>
-                    </div>
-                    <div style="margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; max-width: 500px;">
-                        <div class="form-group" style="margin: 0;">
-                            <label>세로 줄 수</label>
-                            <input type="number" id="seat-rows" min="1" max="50" value="23" style="padding: 8px;">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label>가로 열 수</label>
-                            <input type="number" id="seat-cols" min="1" max="10" value="5" style="padding: 8px;">
-                        </div>
-                        <div style="display: flex; align-items: flex-end;">
-                            <button class="btn btn-primary" onclick="resizeSeating()" style="width: 100%;">크기 변경</button>
-                        </div>
                     </div>
                     <div id="seating-editor"></div>
                 </div>
@@ -259,13 +244,54 @@
 <script>
 let g1=[{학번:'10102',이름:'김도윤',불참:'-'},{학번:'10103',이름:'김도훈',불참:'-'},{학번:'10106',이름:'김재현',불참:'-'},{학번:'10115',이름:'이건상',불참:'-'},{학번:'10116',이름:'이기혁',불참:'-'},{학번:'10117',이름:'이서준',불참:'-'},{학번:'10119',이름:'이윤찬',불참:'-'},{학번:'10123',이름:'김보성',불참:'-'},{학번:'10223',이름:'이서준',불참:'-'},{학번:'10306',이름:'이승준',불참:'-'},{학번:'10320',이름:'조현석',불참:'-'},{학번:'10505',이름:'권가연',불참:'수 오전/오후'},{학번:'10508',이름:'김윤채',불참:'금 오전'},{학번:'10513',이름:'박지후',불참:'금 오후'},{학번:'10516',이름:'이지우',불참:'-'},{학번:'10601',이름:'김세연',불참:'-'},{학번:'10608',이름:'유지원',불참:'-'},{학번:'10609',이름:'이나운',불참:'-'},{학번:'10611',이름:'이루리',불참:'목 오후'},{학번:'10612',이름:'이소윤',불참:'-'},{학번:'10613',이름:'이영인',불참:'-'},{학번:'10618',이름:'정희란',불참:'-'},{학번:'10619',이름:'최진경',불참:'-'},{학번:'10805',이름:'김보미',불참:'화 오후'},{학번:'10815',이름:'유제니',불참:'-'},{학번:'10901',이름:'김민서',불참:'금 오전'},{학번:'10903',이름:'김시현',불참:'금 오전/오후'},{학번:'10904',이름:'김하람',불참:'금 오전'},{학번:'10905',이름:'서하은',불참:'-'},{학번:'10907',이름:'유민정',불참:'금 오전'},{학번:'10910',이름:'이나윤',불참:'금 오전'}];
 let g2=[{학번:'20101',이름:'김동하',불참:'-'},{학번:'20113',이름:'이재경',불참:'-'},{학번:'20215',이름:'정민규',불참:'-'},{학번:'20301',이름:'김선우',불참:'-'},{학번:'20307',이름:'박이엘',불참:'-'},{학번:'20313',이름:'윤여명',불참:'-'},{학번:'20418',이름:'윤주성',불참:'-'},{학번:'20714',이름:'이유온',불참:'-'},{학번:'20801',이름:'강다연',불참:'-'},{학번:'20802',이름:'강서유',불참:'-'},{학번:'20807',이름:'김민서',불참:'-'},{학번:'20810',이름:'서준영',불참:'-'},{학번:'20811',이름:'서지민',불참:'-'},{학번:'20815',이름:'이서윤',불참:'-'},{학번:'21005',이름:'김채영',불참:'-'},{학번:'21010',이름:'백소은',불참:'-'},{학번:'21020',이름:'이예담',불참:'-'},{학번:'21022',이름:'정채린',불참:'-'}];
-let seatingLayout={'2':[['21022','20810','21020','20815','21005'],[null,null,null,null,null],['20807',null,null,null,'20811'],[null,null,null,null,null],['20802','20801','20714',null,null],[null,null,null,null,null],[null,null,null,'20418','20313'],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20307',null,null],[null,null,null,null,null],[null,null,'20301',null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20215',null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20113',null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'20101',null,null]],'1':[[null,null,'10619','10618','10508'],[null,null,null,null,null],['10805','10513','10516','10612',null],[null,null,null,null,null],['10903','10904','10905','10907','10910'],[null,null,null,null,null],['10505','10608','10601','10611','10901'],[null,null,null,null,null],['10903','10904','10905','10907','10910'],[null,null,null,null,null],['10505','10601','10608','10612','10901'],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],['10320','10106',null,null,'10119'],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,'10306','10116','10117'],[null,null,null,null,null],['10320','10106','10223',null,'10123'],[null,null,null,null,null],[null,null,'10103','10102','10115']]};
-let seatNumbers={'1':{},'2':{}};
+
+// 좌석 번호 고정 (사진 기준)
+let seatNumbers={
+    '2': {
+        '0-0':'134','0-1':'133','0-2':'132','0-3':'131','0-4':'130',
+        '1-0':'125','1-1':'126','1-2':'127','1-3':'128','1-4':'129',
+        '2-0':'124','2-1':'123','2-2':'122','2-3':'121','2-4':'120',
+        '3-0':'115','3-1':'116','3-2':'117','3-3':'118','3-4':'119',
+        '4-0':'114','4-1':'113','4-2':'112','4-3':'111','4-4':'110',
+        '5-0':'105','5-1':'106','5-2':'107','5-3':'108','5-4':'109'
+    },
+    '1': {
+        '0-0':'94','0-1':'93','0-2':'92','0-3':'91','0-4':'90',
+        '1-0':'85','1-1':'86','1-2':'87','1-3':'88','1-4':'89',
+        '2-0':'84','2-1':'83','2-2':'82','2-3':'81','2-4':'80',
+        '3-0':'75','3-1':'76','3-2':'77','3-3':'78','3-4':'79',
+        '4-0':'74','4-1':'73','4-2':'72','4-3':'71','4-4':'70',
+        '5-0':'64','5-1':'65','5-2':'66','5-3':'67','5-4':'69',
+        '6-0':'58','6-1':'59','6-2':'60','6-3':'61','6-4':'63'
+    }
+};
+
+// 초기 좌석 배치 (사진 기준 - 빈칸 제외)
+let seatingLayout={
+    '2':[
+        ['21022','20810','21020','20815','21005'],
+        ['20807',null,null,null,'21010'],
+        ['20802','20801','20714','20811',null],
+        [null,null,null,'20418','20313'],
+        [null,'20301',null,'20307',null],
+        ['20101',null,'20113',null,'20215']
+    ],
+    '1':[
+        [null,'10618','10619',null,null],
+        ['10805','10513','10516','10611','10508'],
+        ['10903','10904','10905','10907','10910'],
+        ['10505','10601','10608','10612','10901'],
+        ['10320','10106',null,null,'10119'],
+        [null,null,'10306','10116','10117'],
+        ['10815','10613','10223','10609','10123']
+    ]
+};
+
 let s={grade:'all',time:'오전',date:new Date().toISOString().split('T')[0],att:{},pw:localStorage.getItem('pw')||'1234',adminLoggedIn:false};
 let dragData={grade:null,fromRow:null,fromCol:null};
 
-function saveData(){localStorage.setItem('students1',JSON.stringify(g1));localStorage.setItem('students2',JSON.stringify(g2));localStorage.setItem('seating',JSON.stringify(seatingLayout));localStorage.setItem('seatNumbers',JSON.stringify(seatNumbers))}
-function loadData(){const s1=localStorage.getItem('students1');const s2=localStorage.getItem('students2');const sl=localStorage.getItem('seating');const sn=localStorage.getItem('seatNumbers');const att=localStorage.getItem('attendance');if(s1)g1=JSON.parse(s1);if(s2)g2=JSON.parse(s2);if(sl)seatingLayout=JSON.parse(sl);if(sn)seatNumbers=JSON.parse(sn);if(att)s.att=JSON.parse(att)}
+function saveData(){localStorage.setItem('students1',JSON.stringify(g1));localStorage.setItem('students2',JSON.stringify(g2));localStorage.setItem('seating',JSON.stringify(seatingLayout))}
+function loadData(){const s1=localStorage.getItem('students1');const s2=localStorage.getItem('students2');const sl=localStorage.getItem('seating');const att=localStorage.getItem('attendance');if(s1)g1=JSON.parse(s1);if(s2)g2=JSON.parse(s2);if(sl)seatingLayout=JSON.parse(sl);if(att)s.att=JSON.parse(att)}
 
 function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));if(t==='attendance'){document.querySelector('.tab:nth-child(1)').classList.add('active');document.getElementById('attendance-tab').classList.add('active')}else if(t==='seating'){document.querySelector('.tab:nth-child(2)').classList.add('active');document.getElementById('seating-tab').classList.add('active');renderSeating()}else if(t==='admin'){document.querySelector('.tab:nth-child(3)').classList.add('active');document.getElementById('admin-tab').classList.add('active');if(!s.adminLoggedIn){document.getElementById('admin-login').style.display='block';document.getElementById('admin-content').classList.remove('show')}else{document.getElementById('admin-login').style.display='none';document.getElementById('admin-content').classList.add('show')}}}
 
@@ -289,10 +315,8 @@ function editSeatingGrade(grade){
     const editor=document.getElementById('seating-editor');
     editor.innerHTML='';
     const seats=seatingLayout[grade];
-    const cols=seats[0]?seats[0].length:5;
+    const cols=5;
     const rows=seats.length;
-    document.getElementById('seat-rows').value=rows;
-    document.getElementById('seat-cols').value=cols;
     
     editor.className='seat-editor';
     editor.style.gridTemplateColumns=`repeat(${cols}, 1fr)`;
@@ -305,6 +329,7 @@ function editSeatingGrade(grade){
             cell.dataset.col=cidx;
             const seatKey=`${ridx}-${cidx}`;
             const seatNum=seatNumbers[grade][seatKey]||'';
+            
             if(seat){
                 const st=[...g1,...g2].find(x=>x.학번===seat);
                 cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div><div class="seat-edit-id">${seat}</div><div class="seat-edit-name">${st?st.이름:''}</div>`;
@@ -312,17 +337,17 @@ function editSeatingGrade(grade){
                 cell.addEventListener('dragstart',handleDragStart);
                 cell.addEventListener('dragend',handleDragEnd)
             }else{
-                cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div>`
+                if(seatNum)cell.innerHTML=`<div class="seat-edit-number">${seatNum}</div>`
             }
+            
             cell.addEventListener('dragover',handleDragOver);
             cell.addEventListener('drop',handleDrop);
             cell.addEventListener('dragleave',handleDragLeave);
+            
             cell.onclick=()=>{
-                if(!cell.classList.contains('dragging')){
-                    const newNum=prompt('좌석 번호를 입력하세요 (예: 1)');
-                    if(newNum!==null){seatNumbers[grade][seatKey]=newNum.trim()}
+                if(!cell.classList.contains('dragging')&&seatNum){
                     const newId=prompt('학번을 입력하세요 (빈 자리는 취소)');
-                    if(newId===null){saveData();editSeatingGrade(grade);return}
+                    if(newId===null){return}
                     if(newId.trim()){
                         const existingSt=[...g1,...g2].find(x=>x.학번===newId.trim());
                         if(!existingSt){
@@ -333,7 +358,9 @@ function editSeatingGrade(grade){
                             }
                         }
                         seatingLayout[grade][ridx][cidx]=newId.trim()||null
-                    }else{seatingLayout[grade][ridx][cidx]=null}
+                    }else{
+                        seatingLayout[grade][ridx][cidx]=null
+                    }
                     saveData();
                     editSeatingGrade(grade);
                     renderSeating()
@@ -354,15 +381,13 @@ function handleDragLeave(e){e.target.classList.remove('drag-over')}
 
 function handleDrop(e){e.preventDefault();e.target.classList.remove('drag-over');const toRow=parseInt(e.currentTarget.dataset.row);const toCol=parseInt(e.currentTarget.dataset.col);if(dragData.fromRow===toRow&&dragData.fromCol===toCol)return;const temp=seatingLayout[dragData.grade][dragData.fromRow][dragData.fromCol];seatingLayout[dragData.grade][dragData.fromRow][dragData.fromCol]=seatingLayout[dragData.grade][toRow][toCol];seatingLayout[dragData.grade][toRow][toCol]=temp;saveData();editSeatingGrade(dragData.grade);renderSeating()}
 
-function resizeSeating(){const rows=parseInt(document.getElementById('seat-rows').value);const cols=parseInt(document.getElementById('seat-cols').value);if(!dragData.grade){alert('학년을 먼저 선택하세요');return}if(rows<1||rows>50||cols<1||cols>10){alert('세로는 1-50, 가로는 1-10 범위로 입력하세요');return}const currentSeats=seatingLayout[dragData.grade];const newSeats=[];for(let r=0;r<rows;r++){const newRow=[];for(let c=0;c<cols;c++){if(currentSeats[r]&&currentSeats[r][c]!==undefined){newRow.push(currentSeats[r][c])}else{newRow.push(null)}}newSeats.push(newRow)}seatingLayout[dragData.grade]=newSeats;saveData();editSeatingGrade(dragData.grade);renderSeating();alert('좌석 크기가 변경되었습니다')}
-
 function resetAttendance(){if(!confirm('출석 데이터만 초기화하시겠습니까? (학생 정보와 좌석 배치는 유지됩니다)'))return;s.att={};localStorage.removeItem('attendance');render();renderSeating();alert('출석 데이터가 초기화되었습니다')}
 
-function resetAll(){if(!confirm('정말 전체 데이터를 초기화하시겠습니까?\n\n모든 학생 정보, 좌석 배치, 출석 데이터가 삭제되고 빈 상태가 됩니다.\n\n이 작업은 되돌릴 수 없습니다!'))return;g1=[];g2=[];const emptyRow=[];for(let i=0;i<5;i++)emptyRow.push(null);const emptySeats=[];for(let i=0;i<5;i++)emptySeats.push([...emptyRow]);seatingLayout={'1':emptySeats.map(r=>[...r]),'2':emptySeats.map(r=>[...r])};seatNumbers={'1':{},'2':{}};s.att={};localStorage.clear();s.pw='1234';localStorage.setItem('pw','1234');saveData();render();renderSeating();alert('전체 데이터가 초기화되었습니다.\n학생 추가와 좌석 배치를 새로 설정하세요.')}
+function resetAll(){if(!confirm('정말 전체 데이터를 초기화하시겠습니까?\n\n모든 학생 정보, 좌석 배치, 출석 데이터가 삭제되고 빈 상태가 됩니다.\n\n이 작업은 되돌릴 수 없습니다!'))return;g1=[];g2=[];seatingLayout={'1':[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],'2':[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]};s.att={};localStorage.clear();s.pw='1234';localStorage.setItem('pw','1234');saveData();render();renderSeating();alert('전체 데이터가 초기화되었습니다.\n학생 추가와 좌석 배치를 새로 설정하세요.')}
 
 function getSt(id,st){const key=`${s.date}_${s.time}_${id}`;if(s.att[key])return s.att[key];const days=['일','월','화','수','목','금','토'];const d=new Date(s.date);const day=days[d.getDay()];if(st.불참==='-')return'none';const exc=st.불참.split(',').map(x=>x.trim());for(let e of exc){if(e.includes(day)){if(e.includes('오전')&&s.time==='오전')return'excused';if(e.includes('오후')&&s.time==='오후')return'excused';if(!e.includes('오전')&&!e.includes('오후'))return'excused'}}return'none'}
 
-function renderSeating(){const chart=document.getElementById('seating-chart');chart.innerHTML='';['2','1'].forEach(grade=>{const div=document.createElement('div');div.innerHTML=`<div class="floor-label">${grade}학년</div>`;const grid=document.createElement('div');grid.className='seat-grid';const seats=seatingLayout[grade];seats.forEach(row=>{row.forEach(id=>{const se=document.createElement('div');if(id==='X'){se.className='seat blocked'}else if(!id){se.className='seat empty'}else{const st=[...g1,...g2].find(x=>x.학번===id);if(st){const status=getSt(id,st);se.className=`seat ${status}`;se.innerHTML=`<div class="seat-number">${id.substring(1)}</div><div class="seat-id">${id}</div><div class="seat-name">${st.이름}</div>`}else{se.className='seat empty'}}grid.appendChild(se)})});grid.style.gridTemplateRows=`repeat(${seats.length}, 1fr)`;div.appendChild(grid);chart.appendChild(div)})}
+function renderSeating(){const chart=document.getElementById('seating-chart');chart.innerHTML='';['2','1'].forEach(grade=>{const div=document.createElement('div');div.innerHTML=`<div class="floor-label">${grade}학년</div>`;const grid=document.createElement('div');grid.className='seat-grid';const seats=seatingLayout[grade];seats.forEach((row,ridx)=>{row.forEach((id,cidx)=>{const se=document.createElement('div');const seatKey=`${ridx}-${cidx}`;const seatNum=seatNumbers[grade][seatKey]||'';if(!id){se.className='seat empty';if(seatNum)se.innerHTML=`<div class="seat-number">${seatNum}</div>`}else{const st=[...g1,...g2].find(x=>x.학번===id);if(st){const status=getSt(id,st);se.className=`seat ${status}`;se.innerHTML=`<div class="seat-number">${seatNum}</div><div class="seat-id">${id}</div><div class="seat-name">${st.이름}</div>`}else{se.className='seat empty';if(seatNum)se.innerHTML=`<div class="seat-number">${seatNum}</div>`}}grid.appendChild(se)})});grid.style.gridTemplateColumns='repeat(5, 1fr)';div.appendChild(grid);chart.appendChild(div)})}
 
 function init(){loadData();document.getElementById('date').value=s.date;update();setInterval(()=>document.getElementById('timeDisplay').textContent='현재: '+new Date().toLocaleTimeString('ko-KR',{hour12:false}),1000);setInterval(autoAbs,60000);document.getElementById('input').addEventListener('keypress',e=>{if(e.key==='Enter')process()})}
 
